@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ollama Chat UI</title>
+
+    <!-- Optional: Prism syntax highlighting (CDN) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism-tomorrow.min.css"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-javascript.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-jsx.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-typescript.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-json.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-bash.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-css.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-markup.min.js"
+    ></script>
+
+    <style>
+      :root {
+        --bg: #0b0f19;
+        --panel: #0f1626;
+        --text: #e7eefc;
+        --muted: #93a4c7;
+        --border: rgba(255, 255, 255, 0.08);
+        --bubble-user: #1b2a4a;
+        --bubble-ai: #0f1626;
+        --accent: #3b82f6;
+        --code-bg: #0b0f19;
+        --code-header: rgba(255, 255, 255, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial;
+        background:
+          radial-gradient(
+            1200px 700px at 30% -10%,
+            #172554 0%,
+            transparent 60%
+          ),
+          radial-gradient(900px 500px at 90% 0%, #111827 0%, transparent 55%),
+          var(--bg);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 0 16px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 16px;
+        min-height: calc(100vh - 48px);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        background: rgba(15, 22, 38, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
+      }
+      header .title {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      header .meta {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .chat {
+        border: 1px solid var(--border);
+        background: rgba(15, 22, 38, 0.55);
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
+        padding: 16px;
+        overflow: auto;
+      }
+
+      .msg {
+        display: flex;
+        margin: 12px 0;
+      }
+      .msg.user {
+        justify-content: flex-end;
+      }
+      .bubble {
+        max-width: 82%;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 12px;
+        line-height: 1.45;
+        white-space: normal;
+      }
+      .user .bubble {
+        background: var(--bubble-user);
+      }
+      .ai .bubble {
+        background: var(--bubble-ai);
+      }
+
+      .bubble .small {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      /* Text blocks inside assistant message */
+      .text-block {
+        margin: 6px 0;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+
+      /* Code block UI like your screenshot */
+      .code-card {
+        margin: 12px 0;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--code-bg);
+      }
+      .code-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: var(--code-header);
+        border-bottom: 1px solid var(--border);
+      }
+      .lang {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: lowercase;
+        letter-spacing: 0.3px;
+      }
+      .copy-btn {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .copy-btn:hover {
+        border-color: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .copy-btn:active {
+        transform: translateY(1px);
+      }
+
+      pre {
+        margin: 0;
+        padding: 12px;
+        overflow: auto;
+      }
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+      }
+
+      /* Composer */
+      .composer {
+        border: 1px solid var(--border);
+        background: rgba(15, 22, 38, 0.75);
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+      }
+
+      textarea {
+        flex: 1;
+        min-height: 52px;
+        max-height: 160px;
+        resize: vertical;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        padding: 10px 12px;
+        outline: none;
+        line-height: 1.4;
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 180px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+        padding: 8px 10px;
+        outline: none;
+        font-size: 13px;
+      }
+
+      button.send {
+        width: 100%;
+        border: 1px solid rgba(59, 130, 246, 0.45);
+        background: rgba(59, 130, 246, 0.18);
+        color: #dbeafe;
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.send:hover {
+        background: rgba(59, 130, 246, 0.25);
+        border-color: rgba(59, 130, 246, 0.65);
+      }
+      button.send:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <div class="title">Ollama Chat UI</div>
+          <div class="meta">MERN-style frontend → Express → Ollama</div>
+        </div>
+        <div class="meta" id="status">idle</div>
+      </header>
+
+      <main class="chat" id="chat"></main>
+
+      <footer class="composer">
+        <textarea
+          id="prompt"
+          placeholder="Type your question… (Shift+Enter = new line, Enter = send)"
+        ></textarea>
+
+        <div class="controls">
+          <input
+            id="apiUrl"
+            type="text"
+            value="http://localhost:3000/api/ai/chat"
+          />
+          <div class="row">
+            <input id="model" type="text" value="dolphin-llama3" />
+          </div>
+          <button class="send" id="sendBtn">Send</button>
+          <div class="hint">Tip: change API URL/model here.</div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const chatEl = document.getElementById("chat");
+      const promptEl = document.getElementById("prompt");
+      const sendBtn = document.getElementById("sendBtn");
+      const apiUrlEl = document.getElementById("apiUrl");
+      const modelEl = document.getElementById("model");
+      const statusEl = document.getElementById("status");
+
+      // Keep a basic messages array like ChatGPT
+     const messages = [
+  {
+    role: "system",
+    content:
+      "You are a helpful assistant. When you include code, ALWAYS wrap it in markdown code fences like ```js ... ``` so the UI can render it nicely.",
+  },
+];
+
+// ---
+const LS_KEY = "ollama_last_chat";
+
+function saveLastToLocalStorage(userText, assistantText) {
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    userText,
+    assistantText,
+    ts: Date.now()
+  }));
+}
+
+function loadLastFromLocalStorage() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+// Create an assistant message bubble we can update live
+function addAssistantStreamingBubble() {
+  const msg = document.createElement("div");
+  msg.className = "msg ai";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+
+  const small = document.createElement("div");
+  small.className = "small";
+  small.textContent = "Assistant";
+  bubble.appendChild(small);
+
+  const body = document.createElement("div");
+  body.className = "text-block";
+  body.textContent = ""; // will fill progressively
+  bubble.appendChild(body);
+
+  msg.appendChild(bubble);
+  chatEl.appendChild(msg);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  return { bodyEl: body, bubbleEl: bubble };
+}
+
+
+
+// ----
+
+
+      function escapeHtml(str) {
+        return str
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function addMessage(role, content) {
+        const msg = document.createElement("div");
+        msg.className = `msg ${role === "user" ? "user" : "ai"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+
+        const small = document.createElement("div");
+        small.className = "small";
+        small.textContent = role === "user" ? "You" : "Assistant";
+        bubble.appendChild(small);
+
+        // Render content with code blocks styled
+        const rendered = renderWithCodeBlocks(content);
+        bubble.appendChild(rendered);
+
+        msg.appendChild(bubble);
+        chatEl.appendChild(msg);
+        chatEl.scrollTop = chatEl.scrollHeight;
+
+        // Prism highlight (if loaded)
+        if (window.Prism) Prism.highlightAllUnder(bubble);
+      }
+
+      function renderWithCodeBlocks(text) {
+        // Parses markdown fences: ```lang\ncode\n```
+        const container = document.createElement("div");
+
+        const fenceRegex = /```([\w-]+)?\n([\s\S]*?)```/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = fenceRegex.exec(text)) !== null) {
+          const [full, langRaw, codeRaw] = match;
+          const start = match.index;
+
+          // Text before code block
+          const before = text.slice(lastIndex, start);
+          if (before.trim().length) {
+            const p = document.createElement("div");
+            p.className = "text-block";
+            p.innerHTML = escapeHtml(before);
+            container.appendChild(p);
+          }
+
+          // Code block
+          const lang = (langRaw || "code").toLowerCase();
+          const code = codeRaw.replace(/\n$/, "");
+
+          const card = document.createElement("div");
+          card.className = "code-card";
+
+          const head = document.createElement("div");
+          head.className = "code-head";
+
+          const langEl = document.createElement("div");
+          langEl.className = "lang";
+          langEl.textContent = lang;
+
+          const btn = document.createElement("button");
+          btn.className = "copy-btn";
+          btn.type = "button";
+          btn.innerHTML = `
+          <span style="opacity:.9">⧉</span>
+          <span>Copy code</span>
+        `;
+          btn.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(code);
+              const old = btn.innerHTML;
+              btn.innerHTML = `<span style="opacity:.9">✓</span><span>Copied</span>`;
+              setTimeout(() => (btn.innerHTML = old), 1200);
+            } catch (e) {
+              alert("Copy failed. Your browser may block clipboard access.");
+            }
+          });
+
+          head.appendChild(langEl);
+          head.appendChild(btn);
+
+          const pre = document.createElement("pre");
+          const codeEl = document.createElement("code");
+
+          // Prism uses language-xxx
+          const prismLang = lang === "js" ? "javascript" : lang;
+          codeEl.className = `language-${prismLang}`;
+          codeEl.textContent = code;
+
+          pre.appendChild(codeEl);
+
+          card.appendChild(head);
+          card.appendChild(pre);
+
+          container.appendChild(card);
+
+          lastIndex = start + full.length;
+        }
+
+        // Remaining text after last code block
+        const after = text.slice(lastIndex);
+        if (after.trim().length) {
+          const p = document.createElement("div");
+          p.className = "text-block";
+          p.innerHTML = escapeHtml(after);
+          container.appendChild(p);
+        }
+
+        // If there were no fences at all, render as plain text
+        if (!container.childNodes.length) {
+          const p = document.createElement("div");
+          p.className = "text-block";
+          p.innerHTML = escapeHtml(text);
+          container.appendChild(p);
+        }
+
+        return container;
+      }
+
+
+//       async function send() {
+//   const userText = promptEl.value.trim();
+//   if (!userText) return;
+
+//   sendBtn.disabled = true;
+//   statusEl.textContent = "thinking…";
+
+//   // OPTIONAL: if you want to force a better style, append instructions to the user message
+//   const prompt1 =
+//     userText +
+//     "\n\n" +
+//     "Explain like you’re teaching a beginner developer, but keep it technically correct in 300 words. " +
+//     "Requirements: Start with a simple definition in 1–2 lines. Use an analogy. Give 3 code examples. " +
+//     "Include var-for-loop setTimeout gotcha and fix using let. After each code block, explain in bullets. " +
+//     "End with a one-line definition to memorize. Use headings.";
+
+//   // ✅ add user message correctly
+//   messages.push({ role: "user", content: prompt1 });
+
+//   addMessage("user", userText);
+//   promptEl.value = "";
+
+//   try {
+//     const apiUrl = apiUrlEl.value.trim();
+//     const model = modelEl.value.trim() || "dolphin-llama3";
+
+//     const res = await fetch(apiUrl, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ messages, model }),
+//     });
+
+//     const data = await res.json().catch(() => ({}));
+
+//     if (!res.ok) {
+//       const err = data?.error || `Request failed (${res.status})`;
+//       addMessage("assistant", `Error: ${err}`);
+//       statusEl.textContent = "error";
+//       return;
+//     }
+
+//     const reply = data?.reply ?? "";
+
+//     // ✅ store assistant message in history correctly
+//     messages.push({ role: "assistant", content: reply });
+
+//     addMessage("assistant", reply);
+//     statusEl.textContent = "idle";
+//   } catch (e) {
+//     addMessage("assistant", `Error: ${e?.message || "Network error"}`);
+//     statusEl.textContent = "error";
+//   } finally {
+//     sendBtn.disabled = false;
+//   }
+// }
+
+async function send() {
+  const userText = promptEl.value.trim();
+  if (!userText) return;
+
+  sendBtn.disabled = true;
+  statusEl.textContent = "thinking…";
+
+  const prompt1 =
+    userText +
+    "\n\n" +
+    "Explain like you’re teaching a beginner developer, but keep it technically correct in 300 words. " +
+    "Requirements: Start with a simple definition in 1–2 lines. Use an analogy. Give 3 code examples. " +
+    "Include var-for-loop setTimeout gotcha and fix using let. After each code block, explain in bullets. " +
+    "End with a one-line definition to memorize. Use headings.";
+
+  // store chat history for context
+  messages.push({ role: "user", content: prompt1 });
+
+  // show user's original input
+  addMessage("user", userText);
+  promptEl.value = "";
+
+  // create assistant bubble that updates progressively
+  const { bodyEl, bubbleEl } = addAssistantStreamingBubble();
+  let assistantText = "";
+
+  try {
+    const apiUrl = apiUrlEl.value.trim().replace(/\/chat$/, "/chat-stream");
+    const model = modelEl.value.trim() || "dolphin-llama3";
+
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, model }),
+    });
+
+    if (!res.ok || !res.body) {
+      const err = await res.text().catch(() => "");
+      bodyEl.textContent = `Error: ${err || "Streaming failed"}`;
+      statusEl.textContent = "error";
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    let buffer = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE events separated by double newline
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        // We only care about lines that start with "data:"
+        const lines = part.split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data:")) continue;
+          const jsonStr = line.slice(5).trim();
+          if (!jsonStr) continue;
+
+          // Ollama stream sends JSON objects per line
+          let obj;
+          try { obj = JSON.parse(jsonStr); } catch { continue; }
+
+          // In Ollama chat streaming, content is usually here:
+          const chunk = obj?.message?.content ?? "";
+          if (chunk) {
+            assistantText += chunk;
+
+            // ✅ "one by one line" effect:
+            // Update the visible text as it grows
+            bodyEl.textContent = assistantText;
+
+            chatEl.scrollTop = chatEl.scrollHeight;
+          }
+
+          // done flag ends stream
+          if (obj?.done) {
+            break;
+          }
+        }
+      }
+    }
+
+    // Save assistant msg into history for next turn context
+    messages.push({ role: "assistant", content: assistantText });
+
+    // Save last Q/A to localStorage
+    saveLastToLocalStorage(userText, assistantText);
+
+    // Now re-render the assistant message with code-block UI
+    // (because streaming used plain text-block; we want code cards)
+    // Replace streaming text with your fancy renderer:
+    const rendered = renderWithCodeBlocks(assistantText);
+    // remove old bodyEl and replace
+    bodyEl.replaceWith(rendered);
+
+    if (window.Prism) Prism.highlightAllUnder(bubbleEl);
+    statusEl.textContent = "idle";
+  } catch (e) {
+    bodyEl.textContent = `Error: ${e?.message || "Network error"}`;
+    statusEl.textContent = "error";
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+      
+      sendBtn.addEventListener("click", send);
+
+      // Enter to send, Shift+Enter for newline
+      promptEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          send();
+        }
+      });
+
+      // Welcome message
+const last = loadLastFromLocalStorage();
+if (last?.userText && last?.assistantText) {
+  addMessage("user", last.userText);
+  addMessage("assistant", last.assistantText);
+} else {
+  addMessage(
+    "assistant",
+    "Hi! Ask me anything. If I return code blocks, they’ll appear in a code card with a Copy button.\n\nExample:\n```js\nconsole.log('hello')\n```"
+  );
+}
+
+
+      // addMessage(
+      //   "assistant",
+      //   "Hi! Ask me anything. If I return code blocks, they’ll appear in a code card with a Copy button.\n\nExample:\n```js\nconsole.log('hello')\n```",
+      // );
+    </script>
+  </body>
+</html>
