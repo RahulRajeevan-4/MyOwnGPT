@@ -1,25 +1,85 @@
-// server/routes/ai.js
 import express from "express";
 
 const router = express.Router();
 
+const OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat";
+const OLLAMA_GENERATE_URL = "http://127.0.0.1:11434/api/generate";
+
+async function getWebContext(query) {
+  if (!query || typeof query !== "string") return "";
+
+  try {
+    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const response = await fetch(ddgUrl);
+    if (!response.ok) return "";
+
+    const data = await response.json();
+    const snippets = [];
+
+    if (data.AbstractText) snippets.push(`- ${data.AbstractText}`);
+
+    if (Array.isArray(data.RelatedTopics)) {
+      for (const topic of data.RelatedTopics.slice(0, 6)) {
+        if (topic?.Text) snippets.push(`- ${topic.Text}`);
+        if (Array.isArray(topic?.Topics)) {
+          for (const nested of topic.Topics.slice(0, 3)) {
+            if (nested?.Text) snippets.push(`- ${nested.Text}`);
+          }
+        }
+        if (snippets.length >= 8) break;
+      }
+    }
+
+    if (!snippets.length) return "";
+
+    return [
+      "Use these web findings if relevant. If uncertain, say so clearly.",
+      ...snippets.slice(0, 8),
+    ].join("\n");
+  } catch {
+    return "";
+  }
+}
+
+async function buildMessages(messages, webSearch) {
+  if (!webSearch) return messages;
+
+  const lastUserMessage = [...messages]
+    .reverse()
+    .find((msg) => msg.role === "user" && typeof msg.content === "string");
+
+  if (!lastUserMessage) return messages;
+
+  const webContext = await getWebContext(lastUserMessage.content);
+  if (!webContext) return messages;
+
+  return [
+    {
+      role: "system",
+      content: `Web context for the current user request:\n${webContext}`,
+    },
+    ...messages,
+  ];
+}
+
+function looksLikeBase64Audio(value) {
+  return typeof value === "string" && value.length > 100 && /^[A-Za-z0-9+/=\n\r]+$/.test(value);
+}
+
 router.post("/chat", async (req, res) => {
   try {
-    const { messages, model = "dolphin-llama3" } = req.body;
+    const { messages, model = "dolphin-llama3", webSearch = false } = req.body;
 
-    // Basic validation
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: "messages must be an array" });
     }
 
-    const ollamaRes = await fetch("http://127.0.0.1:11434/api/chat", {
+    const finalMessages = await buildMessages(messages, webSearch);
+
+    const ollamaRes = await fetch(OLLAMA_CHAT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: false,
-      }),
+      body: JSON.stringify({ model, messages: finalMessages, stream: false }),
     });
 
     if (!ollamaRes.ok) {
@@ -29,7 +89,6 @@ router.post("/chat", async (req, res) => {
 
     const data = await ollamaRes.json();
 
-    // data.message.content contains the reply
     return res.json({
       reply: data?.message?.content ?? "",
       raw: data,
@@ -39,27 +98,25 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-// ✅ NEW: streaming endpoint (SSE)
 router.post("/chat-stream", async (req, res) => {
   try {
-    const { messages, model = "dolphin-llama3" } = req.body;
+    const { messages, model = "dolphin-llama3", webSearch = false } = req.body;
 
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: "messages must be an array" });
     }
 
-    // SSE headers
+    const finalMessages = await buildMessages(messages, webSearch);
+
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
-
-    // If behind proxies, helps flush quickly
     res.flushHeaders?.();
 
-    const ollamaRes = await fetch("http://127.0.0.1:11434/api/chat", {
+    const ollamaRes = await fetch(OLLAMA_CHAT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages: finalMessages, stream: true }),
     });
 
     if (!ollamaRes.ok || !ollamaRes.body) {
@@ -70,7 +127,6 @@ router.post("/chat-stream", async (req, res) => {
 
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder("utf-8");
-
     let buffer = "";
 
     while (true) {
@@ -78,29 +134,64 @@ router.post("/chat-stream", async (req, res) => {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-
-      // Ollama sends JSON objects separated by newlines
       const lines = buffer.split("\n");
-      buffer = lines.pop() || ""; // keep incomplete tail
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
         if (!line.trim()) continue;
-
-        // forward raw json line as SSE data
         res.write(`data: ${line}\n\n`);
       }
     }
 
-    // send any remaining buffered line
     if (buffer.trim()) {
       res.write(`data: ${buffer}\n\n`);
     }
 
-    res.write(`event: end\ndata: {}\n\n`);
+    res.write("event: end\ndata: {}\n\n");
     res.end();
   } catch (e) {
     res.write(`event: error\ndata: ${JSON.stringify({ error: e?.message || "Server error" })}\n\n`);
     res.end();
+  }
+});
+
+router.post("/tts", async (req, res) => {
+  try {
+    const { text, model = "qwen3-tts" } = req.body;
+
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({ error: "text is required" });
+    }
+
+    const ttsPrompt = `Convert this text to natural speech audio:\n${text}`;
+
+    const ollamaRes = await fetch(OLLAMA_GENERATE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, prompt: ttsPrompt, stream: false }),
+    });
+
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text().catch(() => "TTS model error");
+      return res.status(ollamaRes.status).json({ error: errText });
+    }
+
+    const data = await ollamaRes.json();
+    const candidate = data?.audio || data?.audio_base64 || data?.response;
+
+    if (!looksLikeBase64Audio(candidate)) {
+      return res.status(422).json({
+        error: "Qwen3-TTS did not return playable base64 audio. Make sure your local model supports audio output.",
+        raw: data,
+      });
+    }
+
+    return res.json({
+      audioBase64: candidate.replace(/\s+/g, ""),
+      mimeType: "audio/wav",
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
 
