@@ -8,26 +8,147 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-      body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0b1020; color: #e6ebff; }
-      .app { max-width: 900px; margin: 0 auto; padding: 20px; }
-      .card { background: #121a30; border: 1px solid #283251; border-radius: 14px; padding: 16px; }
-      .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
-      .btn { border: 1px solid #4e79ff; background: #2443a8; color: #fff; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 700; }
-      .btn.stop { background: #7e1f31; border-color: #c23a58; }
-      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-      .meta { color: #9fb1e4; font-size: 13px; }
-      .controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 12px; }
-      input[type="text"] { width: 100%; background: #0f172b; color: #e6ebff; border: 1px solid #33416a; border-radius: 8px; padding: 9px; }
-      label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #b7c4ea; }
-      .chat { max-height: 62vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
-      .msg { border-radius: 12px; padding: 10px 12px; border: 1px solid #324064; white-space: pre-wrap; line-height: 1.4; }
-      .user { background: #1a2f63; align-self: flex-end; max-width: 80%; }
-      .assistant { background: #17213c; align-self: flex-start; max-width: 92%; }
-      .small { color: #92a7de; font-size: 12px; margin-bottom: 4px; }
+      :root {
+        --bg: #0b1020;
+        --panel: #121a30;
+        --panel-soft: #0f172b;
+        --text: #ecf2ff;
+        --muted: #9fb1e4;
+        --border: #2a3558;
+        --primary: #355ed9;
+        --primary-border: #4f76ef;
+        --danger: #7e1f31;
+        --danger-border: #c23a58;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background:
+          radial-gradient(1000px 600px at 10% -20%, #1d2b57 0%, transparent 60%),
+          radial-gradient(900px 500px at 100% -10%, #1a2140 0%, transparent 50%),
+          var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 28px auto;
+        padding: 0 16px;
+      }
+
+      .panel {
+        background: rgba(18, 26, 48, 0.9);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .subtitle {
+        margin-top: 6px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .btn {
+        border: 1px solid var(--primary-border);
+        background: var(--primary);
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        min-width: 132px;
+      }
+
+      .btn.stop {
+        background: var(--danger);
+        border-color: var(--danger-border);
+      }
+
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+      .meta-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 760px) {
+        .meta-row { grid-template-columns: 1fr; }
+      }
+
+      input[type="text"] {
+        width: 100%;
+        background: var(--panel-soft);
+        color: var(--text);
+        border: 1px solid #33416a;
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #c9d6fb;
+        font-size: 0.93rem;
+      }
+
+      .status-card {
+        background: rgba(15, 23, 43, 0.9);
+        border: 1px solid #2e3c63;
+        border-radius: 12px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .status-line { color: var(--muted); font-size: 0.9rem; }
+      .live-line { margin-top: 4px; font-size: 0.92rem; color: #dbe7ff; }
+
+      .chat {
+        max-height: 62vh;
+        min-height: 330px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-right: 2px;
+      }
+
+      .msg {
+        border-radius: 12px;
+        padding: 10px 12px;
+        border: 1px solid #324064;
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+
+      .user { background: #213a77; align-self: flex-end; max-width: 80%; }
+      .assistant { background: #162242; align-self: flex-start; max-width: 92%; }
+      .small { color: #9bb0e8; font-size: 12px; margin-bottom: 4px; }
     </style>
   </head>
   <body>
     <div id="root"></div>
+
     <script type="text/babel">
       const { useEffect, useMemo, useRef, useState } = React;
 
@@ -40,15 +161,24 @@ Response style rules:
 4) If uncertain, state assumptions clearly.
 5) Keep context from earlier user turns and resolve follow-up references.`;
 
+      const inferDefaultApi = () => {
+        const { protocol, hostname, port } = window.location;
+        const sameHostApi = `${protocol}//${hostname}:3000/api/ai/chat-stream`;
+
+        if (port === "3000") return "/api/ai/chat-stream";
+        return sameHostApi;
+      };
+
       function App() {
         const [messages, setMessages] = useState([
-          { role: "assistant", content: "Hi! Click Start Voice to begin listening." },
+          { role: "assistant", content: "Hi! Click Start Voice, speak naturally, and I’ll answer in detail." },
         ]);
         const [model, setModel] = useState("dolphin-llama3");
-        const [apiUrl, setApiUrl] = useState("/api/ai/chat-stream");
+        const [apiUrl, setApiUrl] = useState(inferDefaultApi());
         const [voiceEnabled, setVoiceEnabled] = useState(false);
         const [status, setStatus] = useState("idle");
         const [webSearch, setWebSearch] = useState(false);
+        const [liveTranscript, setLiveTranscript] = useState("");
 
         const recognitionRef = useRef(null);
         const listeningRef = useRef(false);
@@ -57,9 +187,7 @@ Response style rules:
         const conversationRef = useRef([{ role: "system", content: SYSTEM_PROMPT }]);
         const chatRef = useRef(null);
 
-        const speechSupported = useMemo(() => {
-          return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-        }, []);
+        const speechSupported = useMemo(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition), []);
 
         useEffect(() => {
           if (!chatRef.current) return;
@@ -68,6 +196,7 @@ Response style rules:
 
         useEffect(() => {
           if (!speechSupported) return;
+
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           const recognition = new SpeechRecognition();
           recognition.continuous = true;
@@ -75,11 +204,16 @@ Response style rules:
           recognition.lang = "en-US";
 
           recognition.onresult = (event) => {
+            let interimText = "";
             let finalText = "";
+
             for (let i = event.resultIndex; i < event.results.length; i += 1) {
               const result = event.results[i];
               if (result.isFinal) finalText += result[0].transcript;
+              else interimText += result[0].transcript;
             }
+
+            setLiveTranscript((interimText || finalText).trim());
 
             const transcript = finalText.trim();
             if (!transcript) return;
@@ -94,12 +228,13 @@ Response style rules:
               streamAbortRef.current = null;
             }
 
+            setLiveTranscript("");
             askAssistant(transcript);
           };
 
           recognition.onend = () => {
             if (listeningRef.current) {
-              recognition.start();
+              try { recognition.start(); } catch {}
             }
           };
 
@@ -112,13 +247,14 @@ Response style rules:
             listeningRef.current = false;
             recognition.stop();
           };
-        }, [speechSupported]);
+        }, [speechSupported, apiUrl, model, webSearch, voiceEnabled]);
 
         async function askAssistant(userText) {
           const userMessage = { role: "user", content: userText };
           const currentConversation = [...conversationRef.current, userMessage];
           conversationRef.current = currentConversation;
-          setMessages((prev) => [...prev, userMessage, { role: "assistant", content: "..." }]);
+
+          setMessages((prev) => [...prev, userMessage, { role: "assistant", content: "Thinking..." }]);
           setStatus("thinking");
 
           const controller = new AbortController();
@@ -133,7 +269,11 @@ Response style rules:
               signal: controller.signal,
             });
 
-            if (!response.ok || !response.body) throw new Error("Streaming failed.");
+            if (!response.ok || !response.body) {
+              const details = await response.text().catch(() => "");
+              throw new Error(details || `Streaming failed (${response.status})`);
+            }
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             let buffer = "";
@@ -141,6 +281,7 @@ Response style rules:
             while (true) {
               const { value, done } = await reader.read();
               if (done) break;
+
               buffer += decoder.decode(value, { stream: true });
               const parts = buffer.split("\n\n");
               buffer = parts.pop() || "";
@@ -148,11 +289,14 @@ Response style rules:
               for (const part of parts) {
                 const line = part.split("\n").find((l) => l.startsWith("data:"));
                 if (!line) continue;
+
                 const payload = line.replace("data:", "").trim();
                 if (!payload) continue;
+
                 let parsed;
                 try { parsed = JSON.parse(payload); } catch { continue; }
                 const chunk = parsed?.message?.content || "";
+
                 if (chunk) {
                   assistantText += chunk;
                   setMessages((prev) => {
@@ -165,7 +309,6 @@ Response style rules:
             }
 
             conversationRef.current = [...conversationRef.current, { role: "assistant", content: assistantText }];
-            setStatus(listeningRef.current ? "listening" : "idle");
 
             if (voiceEnabled && assistantText) {
               const utterance = new SpeechSynthesisUtterance(assistantText);
@@ -180,15 +323,14 @@ Response style rules:
                 setStatus(listeningRef.current ? "listening" : "idle");
               };
               window.speechSynthesis.speak(utterance);
+            } else {
+              setStatus(listeningRef.current ? "listening" : "idle");
             }
           } catch (error) {
             if (error.name !== "AbortError") {
               setMessages((prev) => {
                 const next = [...prev];
-                next[next.length - 1] = {
-                  role: "assistant",
-                  content: `Error: ${error.message}`,
-                };
+                next[next.length - 1] = { role: "assistant", content: `Error: ${error.message}` };
                 return next;
               });
               setStatus("error");
@@ -203,7 +345,7 @@ Response style rules:
 
           if (!voiceEnabled) {
             listeningRef.current = true;
-            recognitionRef.current.start();
+            try { recognitionRef.current.start(); } catch {}
             setVoiceEnabled(true);
             setStatus("listening");
             return;
@@ -211,36 +353,42 @@ Response style rules:
 
           listeningRef.current = false;
           recognitionRef.current.stop();
+          setLiveTranscript("");
+
           if (streamAbortRef.current) streamAbortRef.current.abort();
           window.speechSynthesis.cancel();
           speakingRef.current = false;
+
           setVoiceEnabled(false);
           setStatus("idle");
         }
 
         return (
-          <div className="app">
-            <div className="card">
+          <div className="container">
+            <div className="panel">
               <div className="top">
                 <div>
-                  <h2 style={{ margin: 0 }}>Local Voice Assistant</h2>
-                  <div className="meta">Low battery mode: mic is active only after pressing Start Voice.</div>
+                  <h1>Local Voice Assistant</h1>
+                  <div className="subtitle">Microphone starts only after pressing Start Voice for lower battery usage.</div>
                 </div>
                 <button className={`btn ${voiceEnabled ? "stop" : ""}`} onClick={toggleVoice} disabled={!speechSupported}>
                   {voiceEnabled ? "Stop Voice" : "Start Voice"}
                 </button>
               </div>
 
-              <div className="controls">
-                <input type="text" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
-                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} />
-                <label>
+              <div className="meta-row">
+                <input type="text" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} title="API URL" />
+                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} title="Model" />
+                <label className="checkbox">
                   <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
                   Web Search
                 </label>
               </div>
 
-              <div className="meta" style={{ marginBottom: 8 }}>Status: {status}</div>
+              <div className="status-card">
+                <div className="status-line">Status: {status}</div>
+                <div className="live-line">Listening transcript: {liveTranscript || "(waiting for speech)"}</div>
+              </div>
 
               <div className="chat" ref={chatRef}>
                 {messages.map((m, idx) => (
