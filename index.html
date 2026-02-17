@@ -20,9 +20,7 @@
         --danger: #7e1f31;
         --danger-border: #c23a58;
       }
-
       * { box-sizing: border-box; }
-
       body {
         margin: 0;
         min-height: 100vh;
@@ -33,114 +31,23 @@
           var(--bg);
         color: var(--text);
       }
-
-      .container {
-        max-width: 1000px;
-        margin: 28px auto;
-        padding: 0 16px;
-      }
-
-      .panel {
-        background: rgba(18, 26, 48, 0.9);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 16px;
-      }
-
-      .top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 1.2rem;
-      }
-
-      .subtitle {
-        margin-top: 6px;
-        font-size: 0.9rem;
-        color: var(--muted);
-      }
-
-      .btn {
-        border: 1px solid var(--primary-border);
-        background: var(--primary);
-        color: #fff;
-        padding: 10px 14px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: 700;
-        min-width: 132px;
-      }
-
-      .btn.stop {
-        background: var(--danger);
-        border-color: var(--danger-border);
-      }
-
+      .container { max-width: 1000px; margin: 28px auto; padding: 0 16px; }
+      .panel { background: rgba(18, 26, 48, 0.9); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+      .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+      h1 { margin: 0; font-size: 1.2rem; }
+      .subtitle { margin-top: 6px; font-size: 0.9rem; color: var(--muted); }
+      .btn { border: 1px solid var(--primary-border); background: var(--primary); color: #fff; padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 700; min-width: 132px; }
+      .btn.stop { background: var(--danger); border-color: var(--danger-border); }
       .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-      .meta-row {
-        display: grid;
-        grid-template-columns: 1.5fr 1fr auto;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-
-      @media (max-width: 760px) {
-        .meta-row { grid-template-columns: 1fr; }
-      }
-
-      input[type="text"] {
-        width: 100%;
-        background: var(--panel-soft);
-        color: var(--text);
-        border: 1px solid #33416a;
-        border-radius: 10px;
-        padding: 10px;
-      }
-
-      .checkbox {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #c9d6fb;
-        font-size: 0.93rem;
-      }
-
-      .status-card {
-        background: rgba(15, 23, 43, 0.9);
-        border: 1px solid #2e3c63;
-        border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 10px;
-      }
-
+      .meta-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; }
+      @media (max-width: 860px) { .meta-row { grid-template-columns: 1fr; } }
+      input[type="text"] { width: 100%; background: var(--panel-soft); color: var(--text); border: 1px solid #33416a; border-radius: 10px; padding: 10px; }
+      .checkbox { display: flex; align-items: center; gap: 8px; color: #c9d6fb; font-size: 0.93rem; }
+      .status-card { background: rgba(15, 23, 43, 0.9); border: 1px solid #2e3c63; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
       .status-line { color: var(--muted); font-size: 0.9rem; }
       .live-line { margin-top: 4px; font-size: 0.92rem; color: #dbe7ff; }
-
-      .chat {
-        max-height: 62vh;
-        min-height: 330px;
-        overflow: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding-right: 2px;
-      }
-
-      .msg {
-        border-radius: 12px;
-        padding: 10px 12px;
-        border: 1px solid #324064;
-        white-space: pre-wrap;
-        line-height: 1.5;
-      }
-
+      .chat { max-height: 62vh; min-height: 330px; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 2px; }
+      .msg { border-radius: 12px; padding: 10px 12px; border: 1px solid #324064; white-space: pre-wrap; line-height: 1.5; }
       .user { background: #213a77; align-self: flex-end; max-width: 80%; }
       .assistant { background: #162242; align-self: flex-start; max-width: 92%; }
       .small { color: #9bb0e8; font-size: 12px; margin-bottom: 4px; }
@@ -164,17 +71,25 @@ Response style rules:
       const inferDefaultApi = () => {
         const { protocol, hostname, port } = window.location;
         const sameHostApi = `${protocol}//${hostname}:3000/api/ai/chat-stream`;
-
         if (port === "3000") return "/api/ai/chat-stream";
+        return sameHostApi;
+      };
+
+      const inferDefaultTtsApi = () => {
+        const { protocol, hostname, port } = window.location;
+        const sameHostApi = `${protocol}//${hostname}:3000/api/ai/tts`;
+        if (port === "3000") return "/api/ai/tts";
         return sameHostApi;
       };
 
       function App() {
         const [messages, setMessages] = useState([
-          { role: "assistant", content: "Hi! Click Start Voice, speak naturally, and I’ll answer in detail." },
+          { role: "assistant", content: "Hi! Click Start Voice and ask your question." },
         ]);
         const [model, setModel] = useState("dolphin-llama3");
+        const [ttsModel, setTtsModel] = useState("qwen3-tts");
         const [apiUrl, setApiUrl] = useState(inferDefaultApi());
+        const [ttsApiUrl, setTtsApiUrl] = useState(inferDefaultTtsApi());
         const [voiceEnabled, setVoiceEnabled] = useState(false);
         const [status, setStatus] = useState("idle");
         const [webSearch, setWebSearch] = useState(false);
@@ -191,86 +106,95 @@ Response style rules:
         const speechSupported = useMemo(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition), []);
 
         useEffect(() => {
+          voiceEnabledRef.current = voiceEnabled;
+        }, [voiceEnabled]);
+
+        useEffect(() => {
           if (!chatRef.current) return;
           chatRef.current.scrollTop = chatRef.current.scrollHeight;
         }, [messages]);
 
-        useEffect(() => {
-          voiceEnabledRef.current = voiceEnabled;
-        }, [voiceEnabled]);
-
-        function pickBestVoice() {
-          const voices = window.speechSynthesis.getVoices() || [];
-          const preferred = voices.find((v) => /en-US|Samantha|Google US English|Daniel/i.test(v.name));
-          return preferred || voices.find((v) => /^en/i.test(v.lang)) || null;
+        function startListening() {
+          if (!recognitionRef.current || !voiceEnabledRef.current || speakingRef.current) return;
+          if (listeningRef.current) return;
+          try {
+            recognitionRef.current.start();
+            listeningRef.current = true;
+            setStatus("listening");
+          } catch {
+            // ignore rapid restart errors
+          }
         }
 
-        function chunkTextForSpeech(text, maxLen = 220) {
-          const cleaned = String(text || "").replace(/\s+/g, " ").trim();
-          if (!cleaned) return [];
-
-          const chunks = [];
-          let remaining = cleaned;
-          while (remaining.length > maxLen) {
-            let idx = Math.max(
-              remaining.lastIndexOf(". ", maxLen),
-              remaining.lastIndexOf("? ", maxLen),
-              remaining.lastIndexOf("! ", maxLen),
-              remaining.lastIndexOf(", ", maxLen),
-            );
-
-            if (idx < 40) idx = remaining.lastIndexOf(" ", maxLen);
-            if (idx < 20) idx = maxLen;
-
-            chunks.push(remaining.slice(0, idx + 1).trim());
-            remaining = remaining.slice(idx + 1).trim();
-          }
-          if (remaining) chunks.push(remaining);
-          return chunks;
+        function stopListening() {
+          if (!recognitionRef.current || !listeningRef.current) return;
+          listeningRef.current = false;
+          try { recognitionRef.current.stop(); } catch {}
         }
 
-        function speakAssistantText(text) {
-          const chunks = chunkTextForSpeech(text);
-          if (!chunks.length) {
-            setStatus(listeningRef.current ? "listening" : "idle");
-            return;
+        async function synthesizeWithQwen3Tts(text) {
+          const res = await fetch(ttsApiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, model: ttsModel }),
+          });
+
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data?.audioBase64) {
+            throw new Error(data?.error || `Qwen3-TTS failed (${res.status})`);
           }
 
-          window.speechSynthesis.cancel();
-          const selectedVoice = pickBestVoice();
+          const audio = new Audio(`data:${data.mimeType || "audio/wav"};base64,${data.audioBase64}`);
+          speakingRef.current = true;
+          setStatus("speaking");
 
-          let index = 0;
-          const speakNext = () => {
-            if (index >= chunks.length) {
-              speakingRef.current = false;
-              setStatus(listeningRef.current ? "listening" : "idle");
-              return;
-            }
+          await new Promise((resolve, reject) => {
+            audio.onended = resolve;
+            audio.onerror = () => reject(new Error("Audio playback failed"));
+            audio.play().catch(reject);
+          });
 
-            const utterance = new SpeechSynthesisUtterance(chunks[index]);
-            utterance.rate = 0.98;
-            utterance.pitch = 1.0;
-            if (selectedVoice) utterance.voice = selectedVoice;
+          speakingRef.current = false;
+        }
 
+        function fallbackBrowserSpeak(text) {
+          return new Promise((resolve, reject) => {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
             utterance.onstart = () => {
               speakingRef.current = true;
               setStatus("speaking");
             };
-
             utterance.onend = () => {
-              index += 1;
-              speakNext();
+              speakingRef.current = false;
+              resolve();
             };
-
             utterance.onerror = () => {
               speakingRef.current = false;
-              setStatus("speech-error");
+              reject(new Error("Browser speech synthesis failed"));
             };
-
+            window.speechSynthesis.cancel();
             window.speechSynthesis.speak(utterance);
-          };
+          });
+        }
 
-          speakNext();
+        async function speakAssistantText(text) {
+          const content = String(text || "").trim();
+          if (!content) return;
+
+          stopListening();
+          try {
+            await synthesizeWithQwen3Tts(content);
+          } catch {
+            await fallbackBrowserSpeak(content);
+          } finally {
+            if (voiceEnabledRef.current) {
+              startListening();
+            } else {
+              setStatus("idle");
+            }
+          }
         }
 
         useEffect(() => {
@@ -278,8 +202,9 @@ Response style rules:
 
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
           const recognition = new SpeechRecognition();
-          recognition.continuous = true;
+          recognition.continuous = false;
           recognition.interimResults = true;
+          recognition.maxAlternatives = 1;
           recognition.lang = "en-US";
 
           recognition.onresult = (event) => {
@@ -307,26 +232,29 @@ Response style rules:
               streamAbortRef.current = null;
             }
 
+            stopListening();
             setLiveTranscript("");
             askAssistant(transcript);
           };
 
           recognition.onend = () => {
-            if (listeningRef.current) {
-              try { recognition.start(); } catch {}
+            listeningRef.current = false;
+            if (voiceEnabledRef.current && !speakingRef.current && !streamAbortRef.current) {
+              startListening();
             }
           };
 
           recognition.onerror = () => {
+            listeningRef.current = false;
             setStatus("mic-error");
           };
 
           recognitionRef.current = recognition;
           return () => {
             listeningRef.current = false;
-            recognition.stop();
+            try { recognition.stop(); } catch {}
           };
-        }, [speechSupported, apiUrl, model, webSearch, voiceEnabled]);
+        }, [speechSupported, apiUrl, ttsApiUrl, ttsModel, model, webSearch]);
 
         async function askAssistant(userText) {
           const userMessage = { role: "user", content: userText };
@@ -388,11 +316,12 @@ Response style rules:
             }
 
             conversationRef.current = [...conversationRef.current, { role: "assistant", content: assistantText }];
+            streamAbortRef.current = null;
 
             if (voiceEnabledRef.current && assistantText) {
-              speakAssistantText(assistantText);
+              await speakAssistantText(assistantText);
             } else {
-              setStatus(listeningRef.current ? "listening" : "idle");
+              setStatus(voiceEnabledRef.current ? "listening" : "idle");
             }
           } catch (error) {
             if (error.name !== "AbortError") {
@@ -412,22 +341,20 @@ Response style rules:
           if (!speechSupported) return;
 
           if (!voiceEnabled) {
-            listeningRef.current = true;
-            try { recognitionRef.current.start(); } catch {}
             setVoiceEnabled(true);
-            setStatus("listening");
+            voiceEnabledRef.current = true;
+            startListening();
             return;
           }
 
-          listeningRef.current = false;
-          recognitionRef.current.stop();
+          setVoiceEnabled(false);
+          voiceEnabledRef.current = false;
+          stopListening();
           setLiveTranscript("");
 
           if (streamAbortRef.current) streamAbortRef.current.abort();
           window.speechSynthesis.cancel();
           speakingRef.current = false;
-
-          setVoiceEnabled(false);
           setStatus("idle");
         }
 
@@ -437,7 +364,7 @@ Response style rules:
               <div className="top">
                 <div>
                   <h1>Local Voice Assistant</h1>
-                  <div className="subtitle">Microphone starts only after pressing Start Voice for lower battery usage.</div>
+                  <div className="subtitle">Qwen3-TTS speak-back + mic gating to prevent assistant audio from being re-captured.</div>
                 </div>
                 <button className={`btn ${voiceEnabled ? "stop" : ""}`} onClick={toggleVoice} disabled={!speechSupported}>
                   {voiceEnabled ? "Stop Voice" : "Start Voice"}
@@ -445,8 +372,9 @@ Response style rules:
               </div>
 
               <div className="meta-row">
-                <input type="text" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} title="API URL" />
-                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} title="Model" />
+                <input type="text" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} title="Chat stream API URL" />
+                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} title="LLM model" />
+                <input type="text" value={ttsModel} onChange={(e) => setTtsModel(e.target.value)} title="TTS model" />
                 <label className="checkbox">
                   <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
                   Web Search
@@ -455,6 +383,7 @@ Response style rules:
 
               <div className="status-card">
                 <div className="status-line">Status: {status}</div>
+                <div className="status-line">TTS API: {ttsApiUrl}</div>
                 <div className="live-line">Listening transcript: {liveTranscript || "(waiting for speech)"}</div>
               </div>
 
