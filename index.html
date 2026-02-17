@@ -183,6 +183,7 @@ Response style rules:
         const recognitionRef = useRef(null);
         const listeningRef = useRef(false);
         const speakingRef = useRef(false);
+        const voiceEnabledRef = useRef(false);
         const streamAbortRef = useRef(null);
         const conversationRef = useRef([{ role: "system", content: SYSTEM_PROMPT }]);
         const chatRef = useRef(null);
@@ -193,6 +194,84 @@ Response style rules:
           if (!chatRef.current) return;
           chatRef.current.scrollTop = chatRef.current.scrollHeight;
         }, [messages]);
+
+        useEffect(() => {
+          voiceEnabledRef.current = voiceEnabled;
+        }, [voiceEnabled]);
+
+        function pickBestVoice() {
+          const voices = window.speechSynthesis.getVoices() || [];
+          const preferred = voices.find((v) => /en-US|Samantha|Google US English|Daniel/i.test(v.name));
+          return preferred || voices.find((v) => /^en/i.test(v.lang)) || null;
+        }
+
+        function chunkTextForSpeech(text, maxLen = 220) {
+          const cleaned = String(text || "").replace(/\s+/g, " ").trim();
+          if (!cleaned) return [];
+
+          const chunks = [];
+          let remaining = cleaned;
+          while (remaining.length > maxLen) {
+            let idx = Math.max(
+              remaining.lastIndexOf(". ", maxLen),
+              remaining.lastIndexOf("? ", maxLen),
+              remaining.lastIndexOf("! ", maxLen),
+              remaining.lastIndexOf(", ", maxLen),
+            );
+
+            if (idx < 40) idx = remaining.lastIndexOf(" ", maxLen);
+            if (idx < 20) idx = maxLen;
+
+            chunks.push(remaining.slice(0, idx + 1).trim());
+            remaining = remaining.slice(idx + 1).trim();
+          }
+          if (remaining) chunks.push(remaining);
+          return chunks;
+        }
+
+        function speakAssistantText(text) {
+          const chunks = chunkTextForSpeech(text);
+          if (!chunks.length) {
+            setStatus(listeningRef.current ? "listening" : "idle");
+            return;
+          }
+
+          window.speechSynthesis.cancel();
+          const selectedVoice = pickBestVoice();
+
+          let index = 0;
+          const speakNext = () => {
+            if (index >= chunks.length) {
+              speakingRef.current = false;
+              setStatus(listeningRef.current ? "listening" : "idle");
+              return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(chunks[index]);
+            utterance.rate = 0.98;
+            utterance.pitch = 1.0;
+            if (selectedVoice) utterance.voice = selectedVoice;
+
+            utterance.onstart = () => {
+              speakingRef.current = true;
+              setStatus("speaking");
+            };
+
+            utterance.onend = () => {
+              index += 1;
+              speakNext();
+            };
+
+            utterance.onerror = () => {
+              speakingRef.current = false;
+              setStatus("speech-error");
+            };
+
+            window.speechSynthesis.speak(utterance);
+          };
+
+          speakNext();
+        }
 
         useEffect(() => {
           if (!speechSupported) return;
@@ -310,19 +389,8 @@ Response style rules:
 
             conversationRef.current = [...conversationRef.current, { role: "assistant", content: assistantText }];
 
-            if (voiceEnabled && assistantText) {
-              const utterance = new SpeechSynthesisUtterance(assistantText);
-              utterance.rate = 1;
-              utterance.pitch = 1;
-              utterance.onstart = () => {
-                speakingRef.current = true;
-                setStatus("speaking");
-              };
-              utterance.onend = () => {
-                speakingRef.current = false;
-                setStatus(listeningRef.current ? "listening" : "idle");
-              };
-              window.speechSynthesis.speak(utterance);
+            if (voiceEnabledRef.current && assistantText) {
+              speakAssistantText(assistantText);
             } else {
               setStatus(listeningRef.current ? "listening" : "idle");
             }
